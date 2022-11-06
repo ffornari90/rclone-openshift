@@ -1,0 +1,90 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rclone-webdav
+  namespace: s3fs-ns
+spec: 
+  selector:
+    matchLabels:
+      app: rclone-webdav
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: rclone-webdav
+    spec:
+      hostAliases:
+      - ip: "131.154.162.124"
+        hostnames:
+        - "iam-indigo.cr.cnaf.infn.it"
+      volumes:
+      - name: trust
+        emptyDir: {}
+      - name: dev-fuse
+        hostPath:
+          path: /dev/fuse
+      - name: iam-token
+        configMap:
+          name: iam-token
+          defaultMode: 0755
+      - name: rclone-config
+        configMap:
+          name: rclone-config
+          defaultMode: 0644
+      initContainers:
+      - name: ca-bundle
+        image: "alpine"
+        command: [sh, -c]
+        args:
+          - cd /tmp &&
+            wget 'http://repository.egi.eu/sw/production/cas/1/current/tgz/' &&
+            mkdir tgz && mkdir certificates &&
+            for tgz in $(cat index.html | awk -F'"' '{print $2}' | grep tar.gz);
+            do wget http://repository.egi.eu/sw/production/cas/1/current/tgz/$tgz -O tgz/$tgz;
+            done && for tgz in $(ls tgz/);
+            do tar xzf tgz/$tgz --strip-components=1 -C certificates/; done &&
+            for f in $(find certificates/ -type f -name '*.pem'); 
+            do cat $f >> certs/ca-certificates.crt; done &&
+            wget 'https://crt.sh/?d=2475254782' -O certs/geant-ov-rsa-ca.crt &&
+            cat certs/geant-ov-rsa-ca.crt >> certs/ca-certificates.crt
+        volumeMounts:
+        - name: trust
+          mountPath: /tmp/certs
+      containers:
+      - name: rclone-webdav
+        image: ffornari/rclone-webdav
+        imagePullPolicy: Always
+        command: ["/bin/sh", "-c"]
+        args:
+          - eval $(oidc-agent-service use) &&
+            oidc-gen --scope-all --confirm-default --iss=https://iam-indigo.cr.cnaf.infn.it/ $OIDC_CLIENT_NAME &&
+            mkdir -p /tmp/webdav &&
+            rclone --no-check-certificate mount --vfs-cache-mode writes "webdav:" /tmp/webdav
+        env:
+        - name: OIDC_CLIENT_NAME
+          value: "rclone-webdav-client"
+        - name: OIDC_ENCRYPTION_PW
+          valueFrom:
+            secretKeyRef:
+              name: oidc-secret
+              key: OIDC_ENCRYPTION_PW
+        - name: HOME
+          value: "/tmp"
+        securityContext:
+          capabilities:
+            add: ["SYS_ADMIN"]
+          privileged: true
+        volumeMounts:
+        - mountPath: /dev/fuse
+          name: dev-fuse
+        - mountPath: /etc/ssl/certs
+          name: trust
+          readOnly: true
+        - name: iam-token
+          mountPath: /tmp/iam-token.sh
+          subPath: iam-token.sh
+        - name: rclone-config
+          mountPath: /tmp/.config/rclone/rclone.conf
+          subPath: rclone.conf
