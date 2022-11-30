@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: iam-token
-  namespace: s3fs-ns
+  namespace: rclone-ns
 data:
   iam-token.sh: |
     #!/bin/bash
@@ -14,7 +14,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: rclone-config
-  namespace: s3fs-ns
+  namespace: rclone-ns
 data:
   rclone.conf: |
     [webdav]

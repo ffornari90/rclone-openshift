@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: rclone-webdav
-  namespace: s3fs-ns
+  namespace: rclone-ns
 spec: 
   selector:
     matchLabels:
