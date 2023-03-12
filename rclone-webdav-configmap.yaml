@@ -19,6 +19,6 @@ data:
   rclone.conf: |
     [webdav]
     type = webdav
-    url = https://storm-webdav-storm-webdav-ns.apps.cnsa.cr.cnaf.infn.it/indigo-dc
+    url = https://storm-webdav-webdav-ns.apps.cnsa.cr.cnaf.infn.it/indigo-dc
     vendor = other
     bearer_token_command = /tmp/iam-token.sh
