@@ -1,0 +1,13 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rclone-owncloud-config
+  namespace: rclone-ns
+data:
+  rclone.conf: |
+    [webdav]
+    type = webdav
+    url = https://owncloud-owncloud-ns.apps.cnsa.cr.cnaf.infn.it/remote.php/webdav/
+    vendor = owncloud
+    bearer_token_command = /tmp/iam-token.sh

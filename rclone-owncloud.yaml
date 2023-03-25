@@ -2,18 +2,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rclone-webdav
+  name: rclone-owncloud
   namespace: rclone-ns
 spec: 
   selector:
     matchLabels:
-      app: rclone-webdav
+      app: rclone-owncloud
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: rclone-webdav
+        app: rclone-owncloud
     spec:
       hostAliases:
       - ip: "131.154.162.124"
@@ -31,7 +31,7 @@ spec:
           defaultMode: 0755
       - name: rclone-config
         configMap:
-          name: rclone-config
+          name: rclone-owncloud-config
           defaultMode: 0644
       initContainers:
       - name: ca-bundle
@@ -53,7 +53,7 @@ spec:
         - name: trust
           mountPath: /tmp/certs
       containers:
-      - name: rclone-webdav
+      - name: rclone-owncloud
         image: ffornari/rclone-webdav
         imagePullPolicy: Always
         command: ["/bin/sh", "-c"]
@@ -61,10 +61,10 @@ spec:
           - eval $(oidc-agent-service use) &&
             oidc-gen --scope-all --confirm-default --iss=https://iam-indigo.cr.cnaf.infn.it/ $OIDC_CLIENT_NAME &&
             mkdir -p /tmp/webdav &&
-            rclone --no-check-certificate mount --vfs-cache-mode full "webdav:" /tmp/webdav
+            rclone --no-check-certificate mount --vfs-cache-mode writes "webdav:" /tmp/webdav
         env:
         - name: OIDC_CLIENT_NAME
-          value: "rclone-webdav-client"
+          value: "rclone-owncloud-client"
         - name: OIDC_ENCRYPTION_PW
           valueFrom:
             secretKeyRef:
